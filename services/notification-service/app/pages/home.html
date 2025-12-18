@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/>
+<title>__SERVICE_NAME__</title></head>
+<body>
+    <h1>__SERVICE_NAME__</h1>
+    <p><a href='http://localhost:8080/'>Back to portal</a></p>
+    <ul>
+        <li><a href='/health'>/health</a></li>
+    </ul>
+    <h2>Notifications API</h2>
+    <ul>
+        <li>GET /notifications</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Try it</h2>
+    <button id='btn'>Load latest notifications</button>
+
+    <h3>Response</h3>
+    <pre id='out' style='white-space:pre-wrap'></pre>
+
+    <script>
+        const out = document.getElementById('out');
+        function show(obj) {
+            out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        }
+
+        document.getElementById('btn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/notifications');
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = text; }
+                if (!res.ok) throw { status: res.status, data };
+                show(data);
+            } catch (err) {
+                show(err);
+            }
+        });
+    </script>
+</body></html>

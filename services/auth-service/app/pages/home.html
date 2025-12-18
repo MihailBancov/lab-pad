@@ -1,0 +1,115 @@
+<!doctype html>
+<html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/>
+<title>__SERVICE_NAME__</title></head>
+<body>
+    <h1>__SERVICE_NAME__</h1>
+    <p><a href='http://localhost:8080/'>Back to portal</a></p>
+    <ul>
+        <li><a href='/health'>/health</a></li>
+    </ul>
+    <h2>Auth API</h2>
+    <ul>
+        <li>POST /auth/register</li>
+        <li>POST /auth/login</li>
+        <li>GET /auth/me</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Try it (HTML forms)</h2>
+
+    <h3>Register</h3>
+    <form id='registerForm'>
+        <label>Email <input name='email' type='email' required /></label><br/>
+        <label>Password <input name='password' type='password' required /></label><br/>
+        <label>Role <input name='role' type='text' value='user' /></label><br/>
+        <button type='submit'>Register</button>
+    </form>
+
+    <h3>Login</h3>
+    <form id='loginForm'>
+        <label>Email <input name='email' type='email' required /></label><br/>
+        <label>Password <input name='password' type='password' required /></label><br/>
+        <button type='submit'>Login</button>
+    </form>
+
+    <h3>Token & /me</h3>
+    <label>Access token <input id='token' type='text' size='80' placeholder='Paste token here' /></label>
+    <button id='meBtn' type='button'>Call /auth/me</button>
+
+    <h3>Response</h3>
+    <pre id='out' style='white-space:pre-wrap'></pre>
+
+    <script>
+        const out = document.getElementById('out');
+        const tokenInput = document.getElementById('token');
+
+        function show(obj) {
+            out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        }
+
+        async function postJson(url, payload) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = text; }
+            if (!res.ok) throw { status: res.status, data };
+            return data;
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const payload = {
+                email: fd.get('email'),
+                password: fd.get('password'),
+                role: (fd.get('role') || 'user')
+            };
+            try {
+                const data = await postJson('/auth/register', payload);
+                if (data && data.access_token) tokenInput.value = data.access_token;
+                show(data);
+            } catch (err) {
+                show(err);
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const payload = {
+                email: fd.get('email'),
+                password: fd.get('password')
+            };
+            try {
+                const data = await postJson('/auth/login', payload);
+                if (data && data.access_token) tokenInput.value = data.access_token;
+                show(data);
+            } catch (err) {
+                show(err);
+            }
+        });
+
+        document.getElementById('meBtn').addEventListener('click', async () => {
+            const token = (tokenInput.value || '').trim();
+            if (!token) {
+                show('Missing token');
+                return;
+            }
+            try {
+                const res = await fetch('/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = text; }
+                if (!res.ok) throw { status: res.status, data };
+                show(data);
+            } catch (err) {
+                show(err);
+            }
+        });
+    </script>
+</body></html>

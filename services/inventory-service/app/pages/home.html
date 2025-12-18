@@ -1,0 +1,93 @@
+<!doctype html>
+<html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/>
+<title>__SERVICE_NAME__</title></head>
+<body>
+    <h1>__SERVICE_NAME__</h1>
+    <p><a href='http://localhost:8080/'>Back to portal</a></p>
+    <ul>
+        <li><a href='/health'>/health</a></li>
+    </ul>
+    <h2>Inventory API</h2>
+    <ul>
+        <li>GET /inventory/{product_id}</li>
+        <li>POST /inventory/set (admin)</li>
+        <li>POST /inventory/reserve</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Try it (HTML forms)</h2>
+    <p>Only <code>/inventory/set</code> requires an <b>admin</b> token (Bearer).</p>
+    <label>Bearer token (admin) <input id='token' type='text' size='90' placeholder='Required for /inventory/set' /></label>
+
+    <h3>Get inventory</h3>
+    <form id='getForm'>
+        <label>Product ID <input id='getProductId' type='number' min='1' value='1' required /></label>
+        <button type='submit'>GET /inventory/{id}</button>
+    </form>
+
+    <h3>Set quantity (admin)</h3>
+    <form id='setForm'>
+        <label>Product ID <input id='setProductId' type='number' min='1' value='1' required /></label>
+        <label>Quantity <input id='setQty' type='number' value='10' required /></label>
+        <button type='submit'>POST /inventory/set</button>
+    </form>
+
+    <h3>Reserve</h3>
+    <form id='reserveForm'>
+        <label>Items JSON</label><br/>
+        <textarea id='reserveItems' rows='6' cols='90'>[{"product_id": 1, "quantity": 1}]</textarea>
+        <br/>
+        <button type='submit'>POST /inventory/reserve</button>
+    </form>
+
+    <h3>Response</h3>
+    <pre id='out' style='white-space:pre-wrap'></pre>
+
+    <script>
+        const out = document.getElementById('out');
+        function show(obj) {
+            out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        }
+        function getAuthHeader() {
+            const token = (document.getElementById('token').value || '').trim();
+            return token ? { 'Authorization': 'Bearer ' + token } : {};
+        }
+        async function call(method, url, body, includeAuth) {
+            const headers = {};
+            if (includeAuth) Object.assign(headers, getAuthHeader());
+            if (body !== undefined) headers['Content-Type'] = 'application/json';
+            const res = await fetch(url, {
+                method,
+                headers,
+                body: body === undefined ? undefined : JSON.stringify(body),
+            });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = text; }
+            if (!res.ok) throw { status: res.status, data };
+            return data;
+        }
+
+        document.getElementById('getForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = Number(document.getElementById('getProductId').value);
+            try { show(await call('GET', '/inventory/' + id)); } catch (err) { show(err); }
+        });
+
+        document.getElementById('setForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const product_id = Number(document.getElementById('setProductId').value);
+            const quantity = Number(document.getElementById('setQty').value);
+            try { show(await call('POST', '/inventory/set', { product_id, quantity }, true)); } catch (err) { show(err); }
+        });
+
+        document.getElementById('reserveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('reserveItems').value;
+            let items;
+            try { items = JSON.parse(text); } catch (err) { show({ error: 'Invalid items JSON', detail: String(err) }); return; }
+            try { show(await call('POST', '/inventory/reserve', { items })); } catch (err) { show(err); }
+        });
+    </script>
+</body></html>

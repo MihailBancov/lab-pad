@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/>
+<title>__SERVICE_NAME__</title></head>
+<body>
+    <h1>__SERVICE_NAME__</h1>
+    <p><a href='http://localhost:8080/'>Back to portal</a></p>
+    <ul>
+        <li><a href='/health'>/health</a></li>
+    </ul>
+    <h2>Payment API</h2>
+    <ul>
+        <li>POST /payment/pay</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Try it (HTML form)</h2>
+    <form id='payForm'>
+        <label>Order ID <input id='orderId' type='number' min='1' value='1' required /></label>
+        <label>Amount (cents) <input id='amount' type='number' min='0' value='1000' required /></label>
+        <button type='submit'>Pay</button>
+    </form>
+
+    <h3>Response</h3>
+    <pre id='out' style='white-space:pre-wrap'></pre>
+
+    <script>
+        const out = document.getElementById('out');
+        function show(obj) {
+            out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        }
+
+        document.getElementById('payForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const order_id = Number(document.getElementById('orderId').value);
+            const amount_cents = Number(document.getElementById('amount').value);
+            try {
+                const res = await fetch('/payment/pay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id, amount_cents })
+                });
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = text; }
+                if (!res.ok) throw { status: res.status, data };
+                show(data);
+            } catch (err) {
+                show(err);
+            }
+        });
+    </script>
+</body></html>

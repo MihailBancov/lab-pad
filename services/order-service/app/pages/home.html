@@ -1,0 +1,70 @@
+<!doctype html>
+<html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/>
+<title>__SERVICE_NAME__</title></head>
+<body>
+    <h1>__SERVICE_NAME__</h1>
+    <p><a href='http://localhost:8080/'>Back to portal</a></p>
+    <ul>
+        <li><a href='/health'>/health</a></li>
+    </ul>
+    <h2>Orders API</h2>
+    <ul>
+        <li>POST /orders</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Try it (HTML form)</h2>
+    <p>Paste an access token from the auth-service page, then create an order.</p>
+
+    <form id='orderForm'>
+        <label>Bearer token <input id='token' type='text' size='90' placeholder='Paste token here' required /></label>
+        <br/><br/>
+        <label>Items JSON</label><br/>
+        <textarea id='items' rows='6' cols='90'>[{"product_id": 1, "quantity": 1}]</textarea>
+        <br/>
+        <button type='submit'>Create order</button>
+    </form>
+
+    <h3>Response</h3>
+    <pre id='out' style='white-space:pre-wrap'></pre>
+
+    <script>
+        const out = document.getElementById('out');
+        function show(obj) {
+            out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        }
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = (document.getElementById('token').value || '').trim();
+            const itemsText = document.getElementById('items').value;
+            let items;
+            try {
+                items = JSON.parse(itemsText);
+            } catch (err) {
+                show({ error: 'Invalid items JSON', detail: String(err) });
+                return;
+            }
+
+            const payload = { items };
+            try {
+                const res = await fetch('/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = text; }
+                if (!res.ok) throw { status: res.status, data };
+                show(data);
+            } catch (err) {
+                show(err);
+            }
+        });
+    </script>
+</body></html>

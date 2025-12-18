@@ -1,0 +1,3 @@
+This workspace contains 6 nearly identical FastAPI service skeletons.
+Each service has: app/models, app/routes, app/schemas, app/services, app/migrations.
+This file is informational only.

@@ -1,0 +1,117 @@
+<!doctype html>
+<html><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/>
+<title>__SERVICE_NAME__</title></head>
+<body>
+    <h1>__SERVICE_NAME__</h1>
+    <p><a href='http://localhost:8080/'>Back to portal</a></p>
+    <ul>
+        <li><a href='/health'>/health</a></li>
+    </ul>
+    <h2>Catalog API</h2>
+    <ul>
+        <li>GET /catalog/categories</li>
+        <li>POST /catalog/categories</li>
+        <li>GET /catalog/products</li>
+        <li>POST /catalog/products</li>
+        <li>GET /catalog/products/{product_id}</li>
+    </ul>
+
+    <hr/>
+
+    <h2>Try it (HTML forms)</h2>
+    <p>POST endpoints require an <b>admin</b> token (Bearer). You can get one from auth-service by registering with role <code>admin</code>.</p>
+    <label>Bearer token (admin) <input id='token' type='text' size='90' placeholder='Optional for GET; required for POST' /></label>
+
+    <h3>Categories</h3>
+    <button id='btnCats'>Load categories</button>
+    <form id='createCategoryForm' style='margin-top:10px;'>
+        <label>Name <input id='catName' type='text' size='40' placeholder='e.g. Electronics' required /></label>
+        <button type='submit'>Create category (admin)</button>
+    </form>
+
+    <h3>Products</h3>
+    <button id='btnProds'>Load products</button>
+    <form id='getProductForm' style='margin-top:10px;'>
+        <label>Product ID <input id='productId' type='number' min='1' /></label>
+        <button type='submit'>Get product by id</button>
+    </form>
+
+    <form id='createProductForm' style='margin-top:10px;'>
+        <div>
+            <label>SKU <input id='sku' type='text' size='20' placeholder='SKU-001' required /></label>
+            <label>Name <input id='name' type='text' size='30' placeholder='Product name' required /></label>
+        </div>
+        <div style='margin-top:6px;'>
+            <label>Description <input id='desc' type='text' size='60' placeholder='Optional' /></label>
+        </div>
+        <div style='margin-top:6px;'>
+            <label>Price (cents) <input id='price' type='number' min='0' value='1000' required /></label>
+            <label>Category ID <input id='catId' type='number' min='1' placeholder='Optional' /></label>
+        </div>
+        <button type='submit' style='margin-top:6px;'>Create product (admin)</button>
+    </form>
+
+    <h3>Response</h3>
+    <pre id='out' style='white-space:pre-wrap'></pre>
+
+    <script>
+        const out = document.getElementById('out');
+        function show(obj) {
+            out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        }
+        function getAuthHeader() {
+            const token = (document.getElementById('token').value || '').trim();
+            return token ? { 'Authorization': 'Bearer ' + token } : {};
+        }
+        async function call(method, url, body) {
+            const headers = { ...getAuthHeader() };
+            if (body !== undefined) headers['Content-Type'] = 'application/json';
+            const res = await fetch(url, {
+                method,
+                headers,
+                body: body === undefined ? undefined : JSON.stringify(body),
+            });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = text; }
+            if (!res.ok) throw { status: res.status, data };
+            return data;
+        }
+
+        document.getElementById('btnCats').addEventListener('click', async () => {
+            try { show(await call('GET', '/catalog/categories')); } catch (e) { show(e); }
+        });
+        document.getElementById('createCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('catName').value;
+            try { show(await call('POST', '/catalog/categories', { name })); } catch (err) { show(err); }
+        });
+
+        document.getElementById('btnProds').addEventListener('click', async () => {
+            try { show(await call('GET', '/catalog/products')); } catch (e) { show(e); }
+        });
+        document.getElementById('getProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = Number(document.getElementById('productId').value);
+            if (!productId) { show({ error: 'Product ID is required' }); return; }
+            try { show(await call('GET', '/catalog/products/' + productId)); } catch (err) { show(err); }
+        });
+        document.getElementById('createProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const sku = document.getElementById('sku').value;
+            const name = document.getElementById('name').value;
+            const description = (document.getElementById('desc').value || '').trim();
+            const price_cents = Number(document.getElementById('price').value);
+            const catIdRaw = (document.getElementById('catId').value || '').trim();
+            const category_id = catIdRaw ? Number(catIdRaw) : null;
+            const payload = {
+                sku,
+                name,
+                description: description ? description : null,
+                price_cents,
+                category_id,
+            };
+            try { show(await call('POST', '/catalog/products', payload)); } catch (err) { show(err); }
+        });
+    </script>
+</body></html>
